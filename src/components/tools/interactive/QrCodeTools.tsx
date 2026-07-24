@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { QrCode, Download, Copy, Check, Wifi, UserCheck, Mail, MessageSquare, Link, Barcode } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
+import { QrCode, Download, Copy, Check, Wifi, UserCheck, Mail, MessageSquare, Link, Code } from 'lucide-react';
 
 interface QrCodeToolsProps {
   toolSlug: string;
@@ -37,6 +38,8 @@ export const QrCodeTools: React.FC<QrCodeToolsProps> = ({ toolSlug, onSuccess })
   // Custom styling
   const [fgColor, setFgColor] = useState('#0f172a');
   const [bgColor, setBgColor] = useState('#ffffff');
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [qrSvgString, setQrSvgString] = useState<string>('');
   const [copied, setCopied] = useState(false);
 
   // Compute QR Payload string
@@ -59,10 +62,39 @@ export const QrCodeTools: React.FC<QrCodeToolsProps> = ({ toolSlug, onSuccess })
   };
 
   const payload = getQrPayload();
-  // Generate reliable public QR code vector URL
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-    payload
-  )}&color=${fgColor.replace('#', '')}&bgcolor=${bgColor.replace('#', '')}`;
+
+  useEffect(() => {
+    const generateQr = async () => {
+      try {
+        const pngUrl = await QRCode.toDataURL(payload, {
+          width: 320,
+          margin: 2,
+          color: { dark: fgColor, light: bgColor },
+        });
+        const svgStr = await QRCode.toString(payload, {
+          type: 'svg',
+          margin: 2,
+          color: { dark: fgColor, light: bgColor },
+        });
+        setQrDataUrl(pngUrl);
+        setQrSvgString(svgStr);
+      } catch (err) {
+        console.error('Error generating QR:', err);
+      }
+    };
+    generateQr();
+  }, [payload, fgColor, bgColor]);
+
+  const handleDownloadSvg = () => {
+    const blob = new Blob([qrSvgString], { type: 'image/svg+xml' });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = 'qrcode.svg';
+    a.click();
+    URL.revokeObjectURL(blobUrl);
+    if (onSuccess) onSuccess('Downloaded SVG vector QR Code');
+  };
 
   const handleCopyPayload = () => {
     navigator.clipboard.writeText(payload);
@@ -224,30 +256,39 @@ export const QrCodeTools: React.FC<QrCodeToolsProps> = ({ toolSlug, onSuccess })
             </h4>
 
             <div className="p-3 bg-white border border-slate-200 dark:border-slate-700 rounded-2xl shadow-inner inline-block mb-4">
-              <img
-                src={qrImageUrl}
-                alt="QR Code"
-                className="w-48 h-48 object-contain rounded"
-              />
+              {qrDataUrl && (
+                <img
+                  src={qrDataUrl}
+                  alt="QR Code"
+                  className="w-48 h-48 object-contain rounded"
+                />
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 w-full">
-            <a
-              href={qrImageUrl}
-              download="qr-code.png"
-              target="_blank"
-              rel="noreferrer"
-              className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-xl shadow transition-all flex items-center justify-center gap-1.5"
-            >
-              <Download className="w-4 h-4" /> Download PNG
-            </a>
+          <div className="flex flex-col gap-2 w-full">
+            <div className="grid grid-cols-2 gap-2">
+              <a
+                href={qrDataUrl}
+                download="qr-code.png"
+                className="py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-xl shadow transition-all flex items-center justify-center gap-1.5"
+              >
+                <Download className="w-4 h-4" /> PNG
+              </a>
+              <button
+                onClick={handleDownloadSvg}
+                className="py-2.5 bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-medium text-xs rounded-xl hover:bg-indigo-200 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Code className="w-4 h-4" /> SVG Vector
+              </button>
+            </div>
+
             <button
               onClick={handleCopyPayload}
-              className="px-3 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-xl hover:bg-slate-200 transition-colors flex items-center gap-1.5"
+              className="w-full py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-1.5"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-              <span>{copied ? 'Copied' : 'Copy Payload'}</span>
+              <span>{copied ? 'Copied Payload' : 'Copy Payload String'}</span>
             </button>
           </div>
         </div>

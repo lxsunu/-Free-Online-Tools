@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ToolItem } from '../../types/tool';
 import { ImageTools } from './interactive/ImageTools';
+import { PdfTools } from './interactive/PdfTools';
 import { QrCodeTools } from './interactive/QrCodeTools';
 import { PasswordTools } from './interactive/PasswordTools';
 import { JsonTools } from './interactive/JsonTools';
@@ -45,6 +46,10 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool }) => {
   const renderInteractiveEngine = () => {
     const slug = tool.slug;
     const cat = tool.category;
+
+    if (cat === 'pdf' || slug.includes('pdf')) {
+      return <PdfTools toolSlug={slug} onSuccess={handleToolSuccess} />;
+    }
 
     if (
       cat === 'image' ||
