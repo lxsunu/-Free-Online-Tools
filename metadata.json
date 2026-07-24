@@ -1,0 +1,6 @@
+{
+  "name": "OmniTools - Free Online Utility & Developer Tools",
+  "description": "200+ free online web tools for developers, designers, SEO, image processing, text utilities, unit converters, and calculators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
